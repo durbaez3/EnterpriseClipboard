@@ -1,0 +1,131 @@
+<Window x:Class="EnterpriseClipboard.App.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:EnterpriseClipboard.App"
+        mc:Ignorable="d"
+        Title="Configuración del Sistema" 
+        Height="400" Width="450"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource BackgroundBrush}"
+        ResizeMode="NoResize">
+    
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Title -->
+        <TextBlock Grid.Row="0" 
+                   Text="Configuración de Enterprise Clipboard Manager" 
+                   Foreground="{StaticResource TextPrimaryBrush}" 
+                   FontSize="16" 
+                   FontWeight="Bold" 
+                   Margin="0,0,0,15"/>
+
+        <!-- Form fields -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                
+                <!-- Retention Days -->
+                <TextBlock Text="Retención de Historial (en días)" 
+                           Foreground="{StaticResource TextSecondaryBrush}" 
+                           FontSize="12" 
+                           Margin="0,0,0,4"/>
+                <TextBox Text="{Binding RetentionDays, UpdateSourceTrigger=PropertyChanged}" 
+                         Style="{StaticResource ModernTextBox}" 
+                         Width="120" 
+                         HorizontalAlignment="Left"
+                         Margin="0,0,0,15"/>
+
+                <!-- Divider -->
+                <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Margin="0,5,0,15"/>
+
+                <!-- Hotkey: Quick Popup -->
+                <TextBlock Text="Atajo para Ventana Rápida (Quick Popup)" 
+                           Foreground="{StaticResource TextPrimaryBrush}" 
+                           FontSize="13" 
+                           FontWeight="Bold" 
+                           Margin="0,0,0,8"/>
+
+                <Grid Margin="0,0,0,15">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="10"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="Modificador" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
+                        <ComboBox ItemsSource="{Binding ModifiersList}" 
+                                  SelectedValuePath="Value" 
+                                  DisplayMemberPath="DisplayName"
+                                  SelectedValue="{Binding SelectedQpModifier}"
+                                  Padding="8" Background="#161923"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="Tecla" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
+                        <ComboBox ItemsSource="{Binding KeysList}" 
+                                  SelectedValuePath="Value" 
+                                  DisplayMemberPath="DisplayName"
+                                  SelectedValue="{Binding SelectedQpKey}"
+                                  Padding="8" Background="#161923"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Hotkey: MainWindow -->
+                <TextBlock Text="Atajo para Historial Completo (MainWindow)" 
+                           Foreground="{StaticResource TextPrimaryBrush}" 
+                           FontSize="13" 
+                           FontWeight="Bold" 
+                           Margin="0,0,0,8"/>
+
+                <Grid Margin="0,0,0,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="10"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="Modificador" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
+                        <ComboBox ItemsSource="{Binding ModifiersList}" 
+                                  SelectedValuePath="Value" 
+                                  DisplayMemberPath="DisplayName"
+                                  SelectedValue="{Binding SelectedMwModifier}"
+                                  Padding="8" Background="#161923"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="Tecla" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
+                        <ComboBox ItemsSource="{Binding KeysList}" 
+                                  SelectedValuePath="Value" 
+                                  DisplayMemberPath="DisplayName"
+                                  SelectedValue="{Binding SelectedMwKey}"
+                                  Padding="8" Background="#161923"/>
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Actions -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
+            <Button Content="Cancelar" 
+                    Click="CancelButton_Click"
+                    Style="{StaticResource ModernButton}" 
+                    Background="#1F2937" 
+                    Margin="0,0,10,0" 
+                    Width="100"/>
+            
+            <Button Content="Guardar" 
+                    Command="{Binding SaveCommand}"
+                    Style="{StaticResource ModernButton}" 
+                    Background="{StaticResource PrimaryAccentBrush}" 
+                    Width="100"/>
+        </StackPanel>
+    </Grid>
+</Window>
