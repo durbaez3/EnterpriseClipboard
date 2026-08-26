@@ -38,7 +38,12 @@ public partial class MainWindow : Window
         if (!_isShuttingDown)
         {
             e.Cancel = true;
-            Hide(); // Hide window instead of closing, keeping hotkeys active
+            // Reset search so next open shows latest items
+            if (DataContext is MainWindowViewModel vm)
+            {
+                _ = vm.ResetSearchAsync();
+            }
+            Hide();
         }
         else
         {
@@ -46,11 +51,12 @@ public partial class MainWindow : Window
         }
     }
 
-    private void ClipsList_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    private async void ClipsList_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
         if (DataContext is MainWindowViewModel vm && vm.SelectedItem is ClipboardItem item)
         {
-            vm.PasteCommand.Execute(item);
+            // Use PasteItemAsync directly (includes the focus-transfer delay for reliability)
+            await vm.PasteItemAsync(item);
         }
     }
 }

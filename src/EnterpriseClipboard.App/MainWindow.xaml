@@ -8,6 +8,7 @@
         mc:Ignorable="d"
         Title="Enterprise Clipboard Manager" 
         Height="650" Width="1700"
+        Icon="Resources/app.ico"
         WindowStartupLocation="CenterScreen"
         Background="{StaticResource BackgroundBrush}">
     

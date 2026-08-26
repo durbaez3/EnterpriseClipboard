@@ -137,6 +137,15 @@ public class MainWindowViewModel : BaseViewModel
         _ = LoadItemsAsync();
     }
 
+    /// <summary>Clears the search box and reloads the full item list (called when window is hidden).</summary>
+    public async Task ResetSearchAsync()
+    {
+        _searchCts?.Cancel();
+        _searchText = string.Empty;
+        OnPropertyChanged(nameof(SearchText));
+        await LoadItemsAsync();
+    }
+
     private async Task DeleteItemAsync(ClipboardItem item)
     {
         if (item == null) return;
@@ -162,16 +171,19 @@ public class MainWindowViewModel : BaseViewModel
         await LoadItemsAsync();
     }
 
-    private async Task PasteItemAsync(ClipboardItem item)
+    public async Task PasteItemAsync(ClipboardItem item)
     {
         if (item == null) return;
 
-        // Hide main window before pasting so it returns focus to previous window
+        // Hide main window first so OS returns focus to the destination window
         var mainWin = System.Windows.Application.Current.MainWindow;
         if (mainWin != null)
         {
             mainWin.Hide();
         }
+
+        // Wait for the OS to transfer focus before sending keystrokes (paste reliability fix)
+        await Task.Delay(180);
 
         bool autoPaste = true;
         var autoPasteSetting = await _settingsRepository.GetValueAsync("General:AutoPaste");

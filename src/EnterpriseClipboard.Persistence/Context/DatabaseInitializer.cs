@@ -26,6 +26,8 @@ public class DatabaseInitializer : IDatabaseInitializer
         await _context.Database.ExecuteSqlRawAsync("PRAGMA journal_mode=WAL;", cancellationToken);
         await _context.Database.ExecuteSqlRawAsync("PRAGMA synchronous=NORMAL;", cancellationToken);
         await _context.Database.ExecuteSqlRawAsync("PRAGMA busy_timeout=5000;", cancellationToken);
+        await _context.Database.ExecuteSqlRawAsync("PRAGMA cache_size=-20000;", cancellationToken); // 20MB in-memory cache
+        await _context.Database.ExecuteSqlRawAsync("PRAGMA temp_store=MEMORY;", cancellationToken);  // Temp tables in RAM
 
         // 3. Seed default exclusions
         if (!await _context.ApplicationExclusions.AnyAsync(cancellationToken))
@@ -89,12 +91,12 @@ public class DatabaseInitializer : IDatabaseInitializer
         {
             await _context.HotkeyConfigurations.AddRangeAsync(new[]
             {
-                // Action: OpenQuickPopup (suggested default: Ctrl + Shift + V)
-                // Modifiers: Ctrl = 2, Shift = 4 => 2 + 4 = 6. Key: V = 0x56
-                new HotkeyConfiguration { Action = "OpenQuickPopup", Modifiers = 6, Key = 0x56, IsEnabled = true, CreatedAt = DateTime.UtcNow },
+                // Action: OpenQuickPopup — Ctrl + Backtick (` )
+                // Modifiers: Ctrl = 2. Key: OEM_3 / Backtick = 192 (0xC0)
+                new HotkeyConfiguration { Action = "OpenQuickPopup", Modifiers = 2, Key = 192, IsEnabled = true, CreatedAt = DateTime.UtcNow },
                 
-                // Action: OpenMainWindow (suggested default: Ctrl + Shift + H)
-                // Key: H = 0x48
+                // Action: OpenMainWindow — Ctrl + Shift + H
+                // Modifiers: Ctrl+Shift = 6. Key: H = 0x48
                 new HotkeyConfiguration { Action = "OpenMainWindow", Modifiers = 6, Key = 0x48, IsEnabled = true, CreatedAt = DateTime.UtcNow }
             }, cancellationToken);
         }

@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Reflection;
 using System.Threading;
 using System.Windows;
 using System.Windows.Interop;
@@ -56,6 +57,7 @@ public partial class App : System.Windows.Application
         services.AddSingleton<IEncryptionService, DpapiEncryptionService>();
         services.AddSingleton<IImageStorageService, ImageStorageService>();
         services.AddSingleton<IClipboardCaptureService, ClipboardCaptureService>();
+        services.AddSingleton<IUpdateService, UpdateService>();
         
         // Repositories
         services.AddScoped<IClipboardRepository, ClipboardRepository>();
@@ -84,23 +86,24 @@ public partial class App : System.Windows.Application
 
         _serviceProvider = services.BuildServiceProvider();
 
-        // 3. Initialize Database
-        using (var scope = _serviceProvider.CreateScope())
+        // 3. Setup Tray Icon FIRST so app appears instantly in taskbar
+        SetupTrayIcon();
+
+        // 4. Initialize Database in background for faster startup
+        await Task.Run(async () =>
         {
+            using var scope = _serviceProvider.CreateScope();
             var dbInitializer = scope.ServiceProvider.GetRequiredService<IDatabaseInitializer>();
             await dbInitializer.InitializeAsync();
-        }
+        });
 
-        // 4. Get windows and services from DI
+        // 5. Get windows and services from DI
         _mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
         _quickPopup = _serviceProvider.GetRequiredService<QuickPopup>();
         _hotkeyService = _serviceProvider.GetRequiredService<IHotkeyService>();
         _captureService = _serviceProvider.GetRequiredService<IClipboardCaptureService>();
 
         MainWindow = _mainWindow;
-
-        // 5. Setup Tray Icon
-        SetupTrayIcon();
 
         // 6. Set up Window handle hook for Native Windows messages
         var interopHelper = new WindowInteropHelper(_mainWindow);
@@ -139,7 +142,8 @@ public partial class App : System.Windows.Application
             }
 
             // Fallback to defaults if not seeded
-            if (!hasQp) _hotkeyService.RegisterHotkey(1, 6, 0x56, ShowQuickPopup);
+            // Default: Ctrl + Backtick for QuickPopup, Ctrl+Shift+H for MainWindow
+            if (!hasQp) _hotkeyService.RegisterHotkey(1, 2, 192, ShowQuickPopup);
             if (!hasMw) _hotkeyService.RegisterHotkey(2, 6, 0x48, ShowMainWindow);
         }
 
@@ -152,13 +156,69 @@ public partial class App : System.Windows.Application
         {
             _mainWindow.Show();
         }
+
+        // Check for updates in background (non-blocking)
+        _ = Task.Run(async () => await CheckForUpdatesInBackgroundAsync());
+    }
+
+    private async Task CheckForUpdatesInBackgroundAsync()
+    {
+        try
+        {
+            await Task.Delay(5000); // Wait 5s after startup before checking
+            if (_serviceProvider == null) return;
+
+            var updateService = _serviceProvider.GetRequiredService<IUpdateService>();
+            var (available, version, url) = await updateService.CheckForUpdatesAsync();
+
+            if (available && !string.IsNullOrEmpty(url))
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    var result = System.Windows.MessageBox.Show(
+                        $"Nueva versión disponible: v{version}\n\n¿Deseas descargar e instalar la actualización ahora?",
+                        "Actualización Disponible",
+                        System.Windows.MessageBoxButton.YesNo,
+                        System.Windows.MessageBoxImage.Information);
+
+                    if (result == System.Windows.MessageBoxResult.Yes)
+                    {
+                        _ = ApplyUpdateAsync(updateService, url);
+                    }
+                });
+            }
+        }
+        catch { /* Silently ignore update check errors */ }
+    }
+
+    private async Task ApplyUpdateAsync(IUpdateService updateService, string url)
+    {
+        try
+        {
+            await updateService.DownloadAndApplyUpdateAsync(url, percent =>
+            {
+                _notifyIcon!.Text = $"Descargando actualización... {percent}%";
+            });
+        }
+        catch (Exception ex)
+        {
+            Dispatcher.Invoke(() =>
+                System.Windows.MessageBox.Show($"Error al actualizar: {ex.Message}", "Error de Actualización",
+                    System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error));
+        }
     }
 
     private void SetupTrayIcon()
     {
+        // Load app icon from embedded resources
+        var iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "app.ico");
+        var trayIcon = File.Exists(iconPath)
+            ? new System.Drawing.Icon(iconPath)
+            : System.Drawing.SystemIcons.Application;
+
         _notifyIcon = new System.Windows.Forms.NotifyIcon
         {
-            Icon = System.Drawing.SystemIcons.Application,
+            Icon = trayIcon,
             Visible = true,
             Text = "Enterprise Clipboard Manager"
         };
@@ -166,7 +226,7 @@ public partial class App : System.Windows.Application
         // Context Menu
         var contextMenu = new System.Windows.Forms.ContextMenuStrip();
         contextMenu.Items.Add("Abrir Historial", null, (s, e) => ShowMainWindow());
-        contextMenu.Items.Add("Historial Rápido (Ctrl+Shift+V)", null, (s, e) => ShowQuickPopup());
+        contextMenu.Items.Add("Historial Rápido (Ctrl + `)", null, (s, e) => ShowQuickPopup());
         contextMenu.Items.Add(new System.Windows.Forms.ToolStripSeparator());
         
         var pauseItem = new System.Windows.Forms.ToolStripMenuItem("Pausar Captura");
@@ -191,6 +251,7 @@ public partial class App : System.Windows.Application
 
         contextMenu.Items.Add(new System.Windows.Forms.ToolStripSeparator());
         contextMenu.Items.Add("Configuración", null, (s, e) => ShowSettingsWindow());
+        contextMenu.Items.Add("Buscar Actualizaciones", null, async (s, e) => await CheckForUpdatesInBackgroundAsync());
         contextMenu.Items.Add(new System.Windows.Forms.ToolStripSeparator());
         contextMenu.Items.Add("Salir", null, (s, e) => ShutdownApp());
 

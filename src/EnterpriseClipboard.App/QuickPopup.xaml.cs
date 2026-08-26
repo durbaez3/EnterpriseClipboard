@@ -39,8 +39,9 @@ public partial class QuickPopup : Window
         Left = (area.Left + (area.Width - (Width * dpiX)) / 2) / dpiX;
         Top = (area.Top + (area.Height - (Height * dpiY)) / 2) / dpiY;
 
-        // 2. Load latest items
-        await _viewModel.LoadItemsAsync();
+        // 2. Reset search and load latest items so popup always shows fresh results
+        _viewModel.SearchText = string.Empty;
+        _ = _viewModel.LoadItemsAsync();
 
         // 3. Show and focus
         Show();
@@ -56,7 +57,9 @@ public partial class QuickPopup : Window
 
     private void Window_Deactivated(object sender, EventArgs e)
     {
-        Hide(); // Auto-hide on focus loss
+        // Reset search so next open shows all items fresh
+        _viewModel.SearchText = string.Empty;
+        Hide();
     }
 
     private void SearchBox_GotFocus(object sender, RoutedEventArgs e)
