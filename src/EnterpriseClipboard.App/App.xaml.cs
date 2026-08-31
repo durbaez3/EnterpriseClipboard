@@ -225,11 +225,12 @@ public partial class App : System.Windows.Application
             // Fallback to default if resource not found
         }
 
+        var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "1.0.0";
         _notifyIcon = new System.Windows.Forms.NotifyIcon
         {
             Icon = trayIcon,
             Visible = true,
-            Text = "Enterprise Clipboard Manager"
+            Text = $"Enterprise Clipboard v{version}"
         };
 
         // Context Menu
