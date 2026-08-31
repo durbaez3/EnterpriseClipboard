@@ -16,103 +16,105 @@ public class ClipboardReader : IClipboardReader
     public ClipboardData? ReadClipboard()
     {
         ClipboardData? result = null;
-        var thread = new Thread(() =>
-        {
-            try
-            {
-                var dataObject = Clipboard.GetDataObject();
-                if (dataObject == null)
-                    return;
-
-                // 1. Files format
-                if (dataObject.GetDataPresent(DataFormats.FileDrop))
+                var thread = new Thread(() =>
                 {
-                    if (dataObject.GetData(DataFormats.FileDrop) is string[] files)
+                    try
                     {
-                        result = new ClipboardData
-                        {
-                            ContentType = ClipboardContentType.Files,
-                            FileList = new List<string>(files),
-                            PlainText = string.Join(Environment.NewLine, files)
-                        };
-                        return;
-                    }
-                }
+                        string? Sanitize(string? input) => input?.Replace("\0", string.Empty);
 
-                // 2. Image format
-                if (dataObject.GetDataPresent(DataFormats.Bitmap))
-                {
-                    var bitmap = Clipboard.GetImage();
-                    if (bitmap != null)
-                    {
-                        byte[]? imageBytes = null;
-                        var encoder = new PngBitmapEncoder();
-                        encoder.Frames.Add(BitmapFrame.Create(bitmap));
-                        using (var ms = new MemoryStream())
+                        var dataObject = Clipboard.GetDataObject();
+                        if (dataObject == null)
+                            return;
+
+                        // 1. Files format
+                        if (dataObject.GetDataPresent(DataFormats.FileDrop))
                         {
-                            encoder.Save(ms);
-                            imageBytes = ms.ToArray();
+                            if (dataObject.GetData(DataFormats.FileDrop) is string[] files)
+                            {
+                                result = new ClipboardData
+                                {
+                                    ContentType = ClipboardContentType.Files,
+                                    FileList = new List<string>(files),
+                                    PlainText = string.Join(Environment.NewLine, files)
+                                };
+                                return;
+                            }
                         }
 
-                        result = new ClipboardData
+                        // 2. Image format
+                        if (dataObject.GetDataPresent(DataFormats.Bitmap))
                         {
-                            ContentType = ClipboardContentType.Image,
-                            ImageBytes = imageBytes,
-                            PlainText = $"[Imagen: {bitmap.PixelWidth}x{bitmap.PixelHeight}]"
-                        };
-                        return;
-                    }
-                }
+                            var bitmap = Clipboard.GetImage();
+                            if (bitmap != null)
+                            {
+                                byte[]? imageBytes = null;
+                                var encoder = new PngBitmapEncoder();
+                                encoder.Frames.Add(BitmapFrame.Create(bitmap));
+                                using (var ms = new MemoryStream())
+                                {
+                                    encoder.Save(ms);
+                                    imageBytes = ms.ToArray();
+                                }
 
-                // 3. RTF format
-                if (dataObject.GetDataPresent(DataFormats.Rtf))
-                {
-                    string rtf = (string)dataObject.GetData(DataFormats.Rtf);
-                    string text = (string)dataObject.GetData(DataFormats.UnicodeText) ?? (string)dataObject.GetData(DataFormats.Text) ?? string.Empty;
-                    result = new ClipboardData
-                    {
-                        ContentType = ClipboardContentType.Rtf,
-                        RtfContent = rtf,
-                        PlainText = text
-                    };
-                    return;
-                }
+                                result = new ClipboardData
+                                {
+                                    ContentType = ClipboardContentType.Image,
+                                    ImageBytes = imageBytes,
+                                    PlainText = $"[Imagen: {bitmap.PixelWidth}x{bitmap.PixelHeight}]"
+                                };
+                                return;
+                            }
+                        }
 
-                // 4. HTML format
-                if (dataObject.GetDataPresent(DataFormats.Html))
-                {
-                    string html = (string)dataObject.GetData(DataFormats.Html);
-                    string text = (string)dataObject.GetData(DataFormats.UnicodeText) ?? (string)dataObject.GetData(DataFormats.Text) ?? string.Empty;
-                    result = new ClipboardData
-                    {
-                        ContentType = ClipboardContentType.Html,
-                        HtmlContent = html,
-                        PlainText = text
-                    };
-                    return;
-                }
-
-                // 5. Plain/Unicode Text format
-                if (dataObject.GetDataPresent(DataFormats.UnicodeText) || dataObject.GetDataPresent(DataFormats.Text))
-                {
-                    string text = (string)dataObject.GetData(DataFormats.UnicodeText) ?? (string)dataObject.GetData(DataFormats.Text) ?? string.Empty;
-                    if (!string.IsNullOrEmpty(text))
-                    {
-                        result = new ClipboardData
+                        // 3. RTF format
+                        if (dataObject.GetDataPresent(DataFormats.Rtf))
                         {
-                            ContentType = ClipboardContentType.Text,
-                            PlainText = text
-                        };
-                        return;
+                            string rtf = Sanitize((string)dataObject.GetData(DataFormats.Rtf)) ?? string.Empty;
+                            string text = Sanitize((string)dataObject.GetData(DataFormats.UnicodeText) ?? (string)dataObject.GetData(DataFormats.Text)) ?? string.Empty;
+                            result = new ClipboardData
+                            {
+                                ContentType = ClipboardContentType.Rtf,
+                                RtfContent = rtf,
+                                PlainText = text
+                            };
+                            return;
+                        }
+
+                        // 4. HTML format
+                        if (dataObject.GetDataPresent(DataFormats.Html))
+                        {
+                            string html = Sanitize((string)dataObject.GetData(DataFormats.Html)) ?? string.Empty;
+                            string text = Sanitize((string)dataObject.GetData(DataFormats.UnicodeText) ?? (string)dataObject.GetData(DataFormats.Text)) ?? string.Empty;
+                            result = new ClipboardData
+                            {
+                                ContentType = ClipboardContentType.Html,
+                                HtmlContent = html,
+                                PlainText = text
+                            };
+                            return;
+                        }
+
+                        // 5. Plain/Unicode Text format
+                        if (dataObject.GetDataPresent(DataFormats.UnicodeText) || dataObject.GetDataPresent(DataFormats.Text))
+                        {
+                            string text = Sanitize((string)dataObject.GetData(DataFormats.UnicodeText) ?? (string)dataObject.GetData(DataFormats.Text)) ?? string.Empty;
+                            if (!string.IsNullOrEmpty(text))
+                            {
+                                result = new ClipboardData
+                                {
+                                    ContentType = ClipboardContentType.Text,
+                                    PlainText = text
+                                };
+                                return;
+                            }
+                        }
                     }
-                }
-            }
-            catch (Exception)
-            {
-                // Clipboard might be locked by another application. Return null so we can retry or ignore.
-                result = null;
-            }
-        });
+                    catch (Exception)
+                    {
+                        // Clipboard might be locked by another application. Return null so we can retry or ignore.
+                        result = null;
+                    }
+                });
 
         thread.SetApartmentState(ApartmentState.STA);
         thread.Start();

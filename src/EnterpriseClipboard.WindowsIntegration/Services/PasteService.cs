@@ -73,7 +73,17 @@ public class PasteService : IPasteService
                                 {
                                     fileCollection.Add(file);
                                 }
-                                Clipboard.SetFileDropList(fileCollection);
+                                
+                                var dataObject = new System.Windows.DataObject();
+                                dataObject.SetFileDropList(fileCollection);
+                                
+                                // Also set text format so it can be pasted into text editors (like Notepad)
+                                if (item.PlainText != null)
+                                {
+                                    dataObject.SetText(item.PlainText);
+                                }
+                                
+                                Clipboard.SetDataObject(dataObject, true);
                             }
                         }
 
