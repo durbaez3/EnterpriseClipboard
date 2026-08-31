@@ -34,7 +34,7 @@ public partial class App : System.Windows.Application
         // 1. Load appsettings.json
         var configBuilder = new ConfigurationBuilder()
             .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
-            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+            .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
         var configuration = configBuilder.Build();
 
         // 2. Configure Dependency Injection
@@ -211,10 +211,19 @@ public partial class App : System.Windows.Application
     private void SetupTrayIcon()
     {
         // Load app icon from embedded resources
-        var iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "app.ico");
-        var trayIcon = File.Exists(iconPath)
-            ? new System.Drawing.Icon(iconPath)
-            : System.Drawing.SystemIcons.Application;
+        System.Drawing.Icon trayIcon = System.Drawing.SystemIcons.Application;
+        try
+        {
+            var streamInfo = System.Windows.Application.GetResourceStream(new Uri("pack://application:,,,/Resources/app.ico"));
+            if (streamInfo != null)
+            {
+                trayIcon = new System.Drawing.Icon(streamInfo.Stream);
+            }
+        }
+        catch
+        {
+            // Fallback to default if resource not found
+        }
 
         _notifyIcon = new System.Windows.Forms.NotifyIcon
         {
