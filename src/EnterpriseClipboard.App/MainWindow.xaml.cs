@@ -59,4 +59,14 @@ public partial class MainWindow : Window
             await vm.PasteItemAsync(item);
         }
     }
+
+    protected override void OnPreviewKeyDown(System.Windows.Input.KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape)
+        {
+            Hide();
+            e.Handled = true;
+        }
+        base.OnPreviewKeyDown(e);
+    }
 }

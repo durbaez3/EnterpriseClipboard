@@ -31,20 +31,25 @@ public class PasteService : IPasteService
                 {
                     try
                     {
-                        Clipboard.Clear();
+                        var dataObject = new System.Windows.DataObject();
+                        bool hasData = false;
 
-                        if (item.ContentType == ClipboardContentType.Text && item.PlainText != null)
+                        // Always set plain text if available (fallback for apps that don't support rich formats)
+                        if (item.PlainText != null)
                         {
-                            Clipboard.SetText(item.PlainText);
+                            dataObject.SetText(item.PlainText);
+                            hasData = true;
                         }
-                        else if (item.ContentType == ClipboardContentType.Html && item.HtmlContent != null)
+
+                        if (item.ContentType == ClipboardContentType.Html && item.HtmlContent != null)
                         {
-                            Clipboard.SetText(item.PlainText ?? string.Empty);
-                            // We can also set custom HTML format if needed
+                            dataObject.SetData(DataFormats.Html, item.HtmlContent);
+                            hasData = true;
                         }
                         else if (item.ContentType == ClipboardContentType.Rtf && item.RtfContent != null)
                         {
-                            Clipboard.SetData(DataFormats.Rtf, item.RtfContent);
+                            dataObject.SetData(DataFormats.Rtf, item.RtfContent);
+                            hasData = true;
                         }
                         else if (item.ContentType == ClipboardContentType.Image && item.ImagePath != null && File.Exists(item.ImagePath))
                         {
@@ -58,7 +63,8 @@ public class PasteService : IPasteService
                                     System.Windows.Media.Imaging.BitmapCacheOption.OnLoad);
                                 if (decoder.Frames.Count > 0)
                                 {
-                                    Clipboard.SetImage(decoder.Frames[0]);
+                                    dataObject.SetImage(decoder.Frames[0]);
+                                    hasData = true;
                                 }
                             }
                         }
@@ -73,18 +79,14 @@ public class PasteService : IPasteService
                                 {
                                     fileCollection.Add(file);
                                 }
-                                
-                                var dataObject = new System.Windows.DataObject();
                                 dataObject.SetFileDropList(fileCollection);
-                                
-                                // Also set text format so it can be pasted into text editors (like Notepad)
-                                if (item.PlainText != null)
-                                {
-                                    dataObject.SetText(item.PlainText);
-                                }
-                                
-                                Clipboard.SetDataObject(dataObject, true);
+                                hasData = true;
                             }
+                        }
+
+                        if (hasData)
+                        {
+                            Clipboard.SetDataObject(dataObject, true);
                         }
 
                         tcs.SetResult(true);
